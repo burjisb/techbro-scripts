@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const TRENDING_TERMS = [
   { term: "MCP", category: "Protocol", heat: 99 },
@@ -21,17 +21,17 @@ const CATEGORY_COLORS = {
   New: "#e17055", Security: "#ff4757",
 };
 
-const SYSTEM_PROMPT = `You are a Bangalore college guy — final year CS student, very online, obsessed with AI, explains tech to friends over chai at the canteen. 
+const SYSTEM_PROMPT = `You are a casual, funny, and super clear tech explainer for YouTube Shorts and Instagram Reels. Your audience is 18-27 year olds who are curious about AI but not experts.
 
 Your tone:
-- Casual Hinglish — mix of English and Hindi/Kannada phrases naturally
-- Use "yaar", "bhai", "basically", "no cap", "fire hai", "scene kya hai", "samjha?", "matlab", "ekdum"
-- Use relatable Indian analogies: Zomato delivery, KSRTC bus, IPL, Swiggy, hostel wifi, placement season, Anna mess food
-- NEVER sound like a textbook or a LinkedIn post
+- Casual American English, like talking to a friend
+- Use "bro", "honestly", "okay so", "here's the thing", "no cap", "lowkey", "it's actually insane"
+- Use simple everyday analogies — like comparing AI to Netflix, Uber, or a group chat
+- NEVER use jargon without explaining it immediately
 - Keep it 30-60 seconds when read aloud (~80-110 words)
 - Structure: Hook → What it is (simple analogy) → Why it matters → Closer
-- Hook must be a question or a shocking statement
-- End with a punchy one-liner
+- Hook must be a question or a shocking statement that grabs attention in 1 second
+- End with a punchy one-liner that makes people want to follow
 
 Format your response as JSON only, exactly like this:
 {
@@ -54,6 +54,14 @@ export default function App() {
   const [searchMode, setSearchMode] = useState("trending");
   const [researchData, setResearchData] = useState("");
   const [phase, setPhase] = useState("idle");
+  const [trendingTerms, setTrendingTerms] = useState(TRENDING_TERMS);
+
+  useEffect(() => {
+    fetch("/api/trending")
+      .then(res => res.json())
+      .then(data => { if (Array.isArray(data)) setTrendingTerms(data); })
+      .catch(() => {});
+  }, []);
 
   const categoryColor = (cat) => CATEGORY_COLORS[cat] || "#fff";
 
@@ -86,12 +94,12 @@ export default function App() {
   async function generateScript(term, research) {
     setPhase("scripting");
     const raw = await callGemini(
-      `Write a 30-60 second YouTube Shorts/Reels script explaining "${term}" to an Indian college audience aged 18-27.
+      `Write a 30-60 second YouTube Shorts/Reels script explaining "${term}" to a general audience aged 18-27.
 
 Research context:
 ${research}
 
-Remember: Bangalore college boy tone, Hinglish, relatable Indian analogies, no jargon dumps. JSON only.`,
+Remember: casual English, use "bro", simple analogies, no jargon dumps. JSON only.`,
       SYSTEM_PROMPT
     );
     try {
@@ -115,7 +123,7 @@ Remember: Bangalore college boy tone, Hinglish, relatable Indian analogies, no j
       setScript(result);
       setPhase("done");
     } catch (e) {
-      setError("Yaar kuch toh gadbad ho gayi 😅 Try again?");
+      setError("Something went wrong bro 😅 Try again?");
       setPhase("idle");
     } finally {
       setLoading(false);
@@ -136,7 +144,7 @@ Remember: Bangalore college boy tone, Hinglish, relatable Indian analogies, no j
 
   const phaseMessages = {
     researching: "🔍 Researching the term...",
-    scripting: "✍️ Writing your script in full Bangalore mode...",
+    scripting: "✍️ Writing your script...",
   };
 
   return (
@@ -177,7 +185,7 @@ Remember: Bangalore college boy tone, Hinglish, relatable Indian analogies, no j
           <span style={{ fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: "18px" }}>
             TechBro<span style={{ color: "#00ff88" }}>Script</span>
           </span>
-          <span style={{ fontSize: "10px", color: "#444", letterSpacing: "0.15em", textTransform: "uppercase" }}>Bangalore Edition</span>
+          <span style={{ fontSize: "10px", color: "#444", letterSpacing: "0.15em", textTransform: "uppercase" }}>AI Script Generator</span>
         </div>
         <div style={{ display: "flex", gap: "12px" }}>
           <span className="stat-chip">🎬 Shorts / Reels</span>
@@ -196,7 +204,7 @@ Remember: Bangalore college boy tone, Hinglish, relatable Indian analogies, no j
             <div>
               <p style={{ fontSize: "11px", color: "#444", marginBottom: "16px", lineHeight: 1.5 }}>Click any term → research + generate script</p>
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                {TRENDING_TERMS.map((item) => (
+                {trendingTerms.map((item) => (
                   <div key={item.term} className={`term-chip ${selectedTerm === item.term ? "active" : ""}`} onClick={() => !loading && handleGenerate(item.term)}>
                     <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
                       <span style={{ fontWeight: 600, fontSize: "13px" }}>{item.term}</span>
@@ -215,7 +223,7 @@ Remember: Bangalore college boy tone, Hinglish, relatable Indian analogies, no j
           {searchMode === "custom" && (
             <div>
               <p style={{ fontSize: "11px", color: "#444", marginBottom: "16px", lineHeight: 1.5 }}>Type any AI/tech term you want a script for</p>
-              <input className="custom-input" placeholder="e.g. OpenClaw, MoE, RLHF..." value={customTerm} onChange={e => setCustomTerm(e.target.value)} onKeyDown={e => e.key === "Enter" && handleCustomSubmit()} />
+              <input className="custom-input" placeholder="e.g. OpenAI o3, Sora, Grok..." value={customTerm} onChange={e => setCustomTerm(e.target.value)} onKeyDown={e => e.key === "Enter" && handleCustomSubmit()} />
               <button className="gen-btn" style={{ width: "100%", marginTop: "12px" }} disabled={loading || !customTerm.trim()} onClick={handleCustomSubmit}>
                 {loading ? "GENERATING..." : "→ GENERATE SCRIPT"}
               </button>
@@ -228,7 +236,7 @@ Remember: Bangalore college boy tone, Hinglish, relatable Indian analogies, no j
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", gap: "16px", opacity: 0.4 }}>
               <div style={{ fontSize: "48px" }}>🎬</div>
               <p style={{ fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: "22px", textAlign: "center" }}>Pick a term, get a script</p>
-              <p style={{ fontSize: "12px", color: "#555", textAlign: "center", maxWidth: 300, lineHeight: 1.6 }}>Select from trending terms or type your own. We research it, then write it in full Bangalore college mode.</p>
+              <p style={{ fontSize: "12px", color: "#555", textAlign: "center", maxWidth: 300, lineHeight: 1.6 }}>Select from trending terms or type your own. We research it, then write a banger script for your Shorts.</p>
             </div>
           )}
 
@@ -243,7 +251,7 @@ Remember: Bangalore college boy tone, Hinglish, relatable Indian analogies, no j
                 <p style={{ fontSize: "14px", color: "#888" }}>{phaseMessages[phase] || "Starting up..."}</p>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                {["Researching the term...", "Summarising context...", "Switching to Bangalore mode...", "Writing your script..."].map((step, i) => (
+                {["Researching the term...", "Summarising context...", "Writing your script...", "Almost done..."].map((step, i) => (
                   <div key={i} style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                     <div style={{ width: 6, height: 6, borderRadius: "50%", background: phase === "researching" && i < 2 ? "#00ff88" : phase === "scripting" && i >= 2 ? "#00ff88" : "#222" }} className="loading-pulse" />
                     <span style={{ fontSize: "12px", color: "#444" }}>{step}</span>
@@ -266,7 +274,6 @@ Remember: Bangalore college boy tone, Hinglish, relatable Indian analogies, no j
                     {script.word_count > 0 && <span className="stat-chip">📝 <span className="stat-val">{script.word_count}</span> words</span>}
                     {script.read_time && <span className="stat-chip">⏱ <span className="stat-val">{script.read_time}</span></span>}
                     <span className="stat-chip">🎬 <span className="stat-val">Shorts/Reels</span></span>
-                    <span className="stat-chip">🏙️ <span className="stat-val">Bangalore Tone</span></span>
                   </div>
                 </div>
                 <button className={`copy-btn ${copied ? "copied" : ""}`} onClick={copyScript}>{copied ? "✓ COPIED" : "COPY SCRIPT"}</button>
