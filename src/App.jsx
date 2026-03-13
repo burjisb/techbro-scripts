@@ -67,19 +67,18 @@ export default function App() {
 
   async function callGemini(prompt, systemPrompt = "") {
     const key = import.meta.env.VITE_GEMINI_KEY;
-    console.log("KEY:", key);
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`;
-    console.log("URL:", url);
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...(systemPrompt && { system_instruction: { parts: [{ text: systemPrompt }] } }),
-        contents: [{ parts: [{ text: prompt }] }],
-      }),
-    });
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...(systemPrompt && { system_instruction: { parts: [{ text: systemPrompt }] } }),
+          contents: [{ parts: [{ text: prompt }] }],
+        }),
+      }
+    );
     const data = await res.json();
-    console.log("RESPONSE:", JSON.stringify(data));
     return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
   }
 
