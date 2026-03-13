@@ -57,9 +57,24 @@ export default function App() {
   const [trendingTerms, setTrendingTerms] = useState(TRENDING_TERMS);
 
   useEffect(() => {
+    const lastFetch = localStorage.getItem("trendingLastFetch");
+    const cached = localStorage.getItem("trendingCache");
+    const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+    
+    if (cached && lastFetch && parseInt(lastFetch) > oneDayAgo) {
+      setTrendingTerms(JSON.parse(cached));
+      return;
+    }
+
     fetch("/api/trending")
       .then(res => res.json())
-      .then(data => { if (Array.isArray(data)) setTrendingTerms(data); })
+      .then(data => {
+        if (Array.isArray(data)) {
+          setTrendingTerms(data);
+          localStorage.setItem("trendingCache", JSON.stringify(data));
+          localStorage.setItem("trendingLastFetch", Date.now().toString());
+        }
+      })
       .catch(() => {});
   }, []);
 
